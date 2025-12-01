@@ -33,15 +33,269 @@ iframe {
 iframe::-webkit-scrollbar-thumb {
 background-color: #0A4C95;
 }
+
+  :root{
+    --flake-count-desktop: 40; /* ajuste se quiser mais/menos */
+    --flake-count-mobile: 18;
+    --max-size: 72px;
+    --min-size: 22px;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    overflow:hidden; /* se quiser scroll, remova */
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* container fixa cobrindo toda a viewport */
+  .snow-container{
+    position:fixed;
+    inset:0; /* top:0; right:0; bottom:0; left:0; */
+    pointer-events:none; /* não atrapalha cliques */
+    overflow:hidden;
+    z-index:-1;
+  }
+
+  .flake{
+    position:absolute;
+    top: -200px; /* começa fora da tela */
+    will-change: transform;
+    user-select:none;
+    -webkit-user-drag: none;
+    pointer-events:none;
+    display:block;
+    backface-visibility:hidden;
+  }
+
+  .flake img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    pointer-events:none;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    /* respeita preferências do usuário reduzindo animações */
+    .flake{ display:none; }
+  }
+  iframe{
+    z-index: 99999;
+  }
 </style>
 </head>
 <body>
-
+  <div class="snow-container" id="snow"></div>
 <div class="container">
 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfiAqt7P7iNM9ix7dbxyyyS8q9ZzCOWEkOHHRC3MkErcA7LeQ/viewform?embedded=true"
 allowfullscreen>
 </iframe>
 </div>
+<script>
+/*
+  Flocos com física simples (requestAnimationFrame).
+  Imagens usadas (do usuário):
+  - Flamengo:  https://upload.wikimedia.org/wikipedia/commons/9/93/Flamengo-RJ_%28BRA%29.png
+  - Ceará:     https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Cear%C3%A1_Sporting_Club_logo.svg/960px-Cear%C3%A1_Sporting_Club_logo.svg.png
+*/
 
+(function(){
+  const IMAGES = [
+    'https://upload.wikimedia.org/wikipedia/commons/9/93/Flamengo-RJ_%28BRA%29.png',
+    // 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Cear%C3%A1_Sporting_Club_logo.svg/960px-Cear%C3%A1_Sporting_Club_logo.svg.png'
+  ];
+
+  const container = document.getElementById('snow');
+
+  // ajusta quantidade conforme largura (menos em mobiles)
+  const isMobile = window.matchMedia('(max-width:720px)').matches;
+  const DEFAULT_COUNT = isMobile ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--flake-count-mobile')) : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--flake-count-desktop'));
+
+  const COUNT = DEFAULT_COUNT || (isMobile ? 18 : 40);
+
+  // limites de tamanho
+  const MIN_SIZE = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--min-size')) || 22;
+  const MAX_SIZE = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--max-size')) || 72;
+
+  // Array de objetos flake
+  const flakes = [];
+
+  // Preload imagens para evitar "flash"
+  const cacheImgs = IMAGES.map(src => {
+    const im = new Image();
+    im.src = src;
+    return im;
+  });
+
+  // viewport
+  let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+  let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+  // ajusta viewport quando redimensionar
+  window.addEventListener('resize', () => {
+    vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+  });
+
+  // cria um floco DOM + objeto estado
+  function createFlake() {
+    const el = document.createElement('div');
+    el.className = 'flake';
+    el.setAttribute('aria-hidden','true');
+
+    // escolha aleatória de imagem
+    const img = document.createElement('img');
+    img.src = IMAGES[Math.floor(Math.random()*IMAGES.length)];
+    img.alt = ''; // decorativo
+    el.appendChild(img);
+
+    // tamanho aleatório
+    const size = randRange(MIN_SIZE, MAX_SIZE);
+
+    // posição inicial horizontal (pode começar acima da tela)
+    const x = Math.random() * vw;
+    const y = randRange(-vh * 0.5, -20); // começa acima
+
+    // velocidade vertical (px per second)
+    const vy = randRange(40, 170); // ajusta sensação de queda
+
+    // sway (oscilação horizontal)
+    const swayAmp = randRange(12, Math.max(24, size)); // amplitude de oscilação
+    const swayFreq = randRange(0.0025, 0.009);
+
+    // rotação
+    const rot = randRange(0, 360);
+    const vrot = randRange(-40, 40); // deg/s
+
+    // drift (const horizontal velocity)
+    const vx = randRange(-15, 15);
+
+    // cria o objeto estado
+    const f = {
+      el, img, x, y, size, vy, vx, swayAmp, swayFreq, rot, vrot, phase: Math.random() * Math.PI * 2
+    };
+
+    // aplica estilo inicial
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.left = '0px'; // usamos transform para posicionar
+    el.style.top = '0px';
+    el.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg)`;
+
+    container.appendChild(el);
+    flakes.push(f);
+  }
+
+  function randRange(min, max){
+    return min + Math.random()*(max-min);
+  }
+
+  // criar N flocos
+  for(let i=0;i<COUNT;i++){
+    createFlake();
+  }
+
+  // tempo para cálculo de dt
+  let last = performance.now();
+  let rafId;
+  let paused = false;
+
+  function step(now){
+    const dt = Math.min(50, now - last) / 1000; // segundos, com cap para evitar jump
+    last = now;
+
+    for(const f of flakes){
+      // atualiza posição vertical
+      f.y += f.vy * dt;
+
+      // drift + pequena oscilação baseada em y + phase
+      const sway = Math.sin(f.y * f.swayFreq + f.phase) * f.swayAmp;
+      f.x += f.vx * dt + (sway * dt * 8 * f.swayFreq); // mistura sway e drift ligeiro
+
+      // rotação
+      f.rot += f.vrot * dt;
+
+      // aplica transform
+      f.el.style.transform = `translate3d(${f.x}px, ${f.y}px, 0) rotate(${f.rot}deg)`;
+
+      // quando sair da tela por baixo, reaparece no topo com novas propriedades
+      if (f.y - f.size > vh + 200 || f.x < -200 || f.x > vw + 200) {
+        // reset com pequenas mudanças para variar
+        f.size = randRange(MIN_SIZE, MAX_SIZE);
+        f.el.style.width = f.size + 'px';
+        f.el.style.height = f.size + 'px';
+        f.x = Math.random() * vw;
+        f.y = randRange(-vh * 0.6, -20);
+        f.vy = randRange(40, 170);
+        f.vx = randRange(-15, 15);
+        f.swayAmp = randRange(12, Math.max(24, f.size));
+        f.swayFreq = randRange(0.0025, 0.009);
+        f.phase = Math.random()*Math.PI*2;
+        f.rot = randRange(0,360);
+        f.vrot = randRange(-40,40);
+        // troca imagem aleatória ocasionalmente
+        if(Math.random() > 0.6) f.img.src = IMAGES[Math.floor(Math.random()*IMAGES.length)];
+      }
+    }
+
+    rafId = requestAnimationFrame(step);
+  }
+
+  // start
+  rafId = requestAnimationFrame(step);
+
+  // pause on hover (útil)
+  container.addEventListener('mouseenter', () => {
+    paused = true;
+    container.classList.add('paused');
+    cancelAnimationFrame(rafId);
+  });
+  container.addEventListener('mouseleave', () => {
+    if(paused){
+      paused = false;
+      last = performance.now();
+      rafId = requestAnimationFrame(step);
+      container.classList.remove('paused');
+    }
+  });
+
+  // opcional: tocar para pausar/retomar ao clicar (útil em mobile, pointer-events none impede clicar no container,
+  // então deixamos a hint com pointer-events para instruir o usuário).
+  // Se quiser ativar toque para pausar, remova pointer-events:none de .snow-container e descomente abaixo:
+  /*
+  container.addEventListener('click', () => {
+    if(paused){
+      paused = false;
+      last = performance.now();
+      rafId = requestAnimationFrame(step);
+      container.classList.remove('paused');
+    } else {
+      paused = true;
+      container.classList.add('paused');
+      cancelAnimationFrame(rafId);
+    }
+  });
+  */
+
+  // acessibilidade: se preferências de redução de movimento estiverem ativas, cancele
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    // remove nodos e cancela anim
+    cancelAnimationFrame(rafId);
+    for(const f of flakes) if(f.el && f.el.parentNode) f.el.parentNode.removeChild(f.el);
+  }
+
+  // Expor função pequena para o console (debug/customização)
+  window.__snow = {
+    flakes,
+    addFlake: createFlake,
+    stop: () => { cancelAnimationFrame(rafId); },
+    resume: () => { last = performance.now(); rafId = requestAnimationFrame(step); }
+  };
+
+})();
+</script>
 </body>
 </html>

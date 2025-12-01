@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de palpites</title>
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        
+body {
+    background-color: #000;
+    color: #ffb0b0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+    </style>
+</head>
+<body>
+<h1 id="contador"></h1>
+    <ul id="lista"></ul>
+<script>
+const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYZPs7BmyBb0zUvOUSIl8-0N4VLjZds-2sectFpJRVp2jltVPAMVGt09C4RqlvlmAhNi68g88BlC2j/pub?output=csv";
+
+fetch(url)
+  .then(res => res.text())
+  .then(csv => {
+    const linhas = csv.split("\n").slice(1); // pula o cabeçalho
+    const lista = document.getElementById("lista");
+    const contador = document.getElementById("contador"); // <h1 id="contador">
+
+    let total = 0;
+
+    linhas.forEach(linha => {
+      const colunas = linha.split(",");
+
+      const nome = (colunas[3] || "").trim();
+      const palpite = (colunas[4] || "").trim();
+
+      if (nome.length > 0) {
+        total++;
+        const li = document.createElement("li");
+        li.textContent = nome + ', ' + palpite;
+        lista.appendChild(li);
+      }
+    });
+
+    contador.textContent = `Total de palpites: ${total}`;
+  });
+</script>
+
+
+</body>
+</html>
