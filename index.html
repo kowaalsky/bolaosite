@@ -24,7 +24,7 @@ body {
 
 iframe {
   width: 100%;
-  height: 90vh;
+  height: 70vh;
   border-radius: 15px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   border: none;
@@ -32,6 +32,21 @@ iframe {
 
 iframe::-webkit-scrollbar-thumb {
 background-color: #0A4C95;
+}
+
+.placar div img{
+  height: 110px;
+}.placar div img.x{
+  height: 40px;
+}
+
+.placar{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  margin-bottom: 20px;
 }
 
   :root{
@@ -76,6 +91,7 @@ background-color: #0A4C95;
     pointer-events:none;
     user-select:none;
     -webkit-user-drag:none;
+    opacity: .3;
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -90,6 +106,17 @@ background-color: #0A4C95;
 <body>
   <div class="snow-container" id="snow"></div>
 <div class="container">
+  <div class="placar">
+    <div>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Flamengo-RJ_%28BRA%29.png" alt="Flamengo">
+    </div>
+    <div>
+      <img class="x" src="x.png" alt="">
+    </div>
+    <div>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Cear%C3%A1_Sporting_Club_logo.svg/960px-Cear%C3%A1_Sporting_Club_logo.svg.png" alt="Ceará SC">
+    </div>
+  </div>
 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfiAqt7P7iNM9ix7dbxyyyS8q9ZzCOWEkOHHRC3MkErcA7LeQ/viewform?embedded=true"
 allowfullscreen>
 </iframe>
